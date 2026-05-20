@@ -2,6 +2,6 @@
 
 # These owners will be the default owners for everything in
 # the repo. Unless a later match takes precedence, members of
-# @rewindio/codeowners will be requested for review when someone
+# @rewind-community/codeowners will be requested for review when someone
 # opens a pull request.
-*       @rewindio/devops
+*       @rewind-community/devops

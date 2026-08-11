@@ -10,6 +10,9 @@ jobs:
   release:
     runs-on: ubuntu-latest
 
+    permissions:
+      contents: read
+
     steps:
       - uses: actions/checkout@61b9e3751b92087fd0b06925ba6dd6314e06f089 # master
 
@@ -20,10 +23,17 @@ jobs:
           echo version=$version >> $GITHUB_OUTPUT
           echo version_tag=v$version >> $GITHUB_OUTPUT
 
+      - name: Create tagger app token
+        id: app-token
+        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3
+        with:
+          app-id: ${{ secrets.TAGGER_APP_ID }}
+          private-key: ${{ secrets.TAGGER_PRIVATE_KEY }}
+
       - name: Tag commit
         uses: tvdias/github-tagger@ed7350546e3e503b5e942dffd65bc8751a95e49d # v0.0.2
         with:
-          repo-token: "${{ secrets.GITHUB_TOKEN }}"
+          repo-token: "${{ steps.app-token.outputs.token }}"
           tag: "${{steps.get_version.outputs.version_tag}}"
 
       - name: Extract from changelog
@@ -50,4 +60,4 @@ jobs:
           tag: ${{steps.get_version.outputs.version_tag}}
           artifacts: "*.gem, CHANGELOG.md, sha256.sum, aws-connect*.tar.gz"
           bodyFile: "REL-BODY.md"
-          token: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ steps.app-token.outputs.token }}

@@ -1,5 +1,9 @@
 # CHANGELOG
 
+## [1.1.3]
+
+- @kmgoswami99 Re-release of 1.1.2, which published with no assets. No change to the script beyond the version line.
+
 ## [1.1.2]
 
 - @kmgoswami99 Tunnel to a loopback host via AWS-StartPortForwardingSession, which Session Manager no longer allows as a ToRemoteHost target

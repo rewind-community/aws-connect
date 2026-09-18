@@ -3,7 +3,7 @@
 # Wrapper around AWS session manager for instance access and SSH tunnels
 
 programname=$0
-version=1.1.1
+version=1.1.2
 
 # Defaults
 action=ssh
@@ -290,13 +290,33 @@ if [ "${action}" == "ssh" ]; then
       --profile "${aws_profile}"
   fi
 elif [ "${action}" == "tunnel" ]; then
-  echo "Creating tunnel to ${tunnel_remote_host} (${instance_id})"
-  aws ssm start-session \
-    --target "${instance_id}" \
-    --document-name AWS-StartPortForwardingSessionToRemoteHost \
-    --parameters "{\"portNumber\":[\"${tunnel_remote_port:-$default_tunnel_remote_port}\"],\"localPortNumber\":[\"${tunnel_local_port:-$default_tunnel_local_port}\"],\"host\":[\"${tunnel_remote_host:-$default_tunnel_remote_host}\"]}" \
-    --region "${aws_region}" \
-    --profile "${aws_profile}"
+  tunnel_host=${tunnel_remote_host:-$default_tunnel_remote_host}
+  tunnel_port=${tunnel_remote_port:-$default_tunnel_remote_port}
+  local_port=${tunnel_local_port:-$default_tunnel_local_port}
+
+  case "${tunnel_host}" in
+    localhost|127.*|::1|"[::1]")
+      # Session Manager refuses a loopback address as a ToRemoteHost target
+      # ("Forwarding to IP address 127.0.0.1 is forbidden"), so forward straight
+      # to the port on the target itself, which is the same destination.
+      echo "Creating tunnel to port ${tunnel_port} on ${instance_id}"
+      aws ssm start-session \
+        --target "${instance_id}" \
+        --document-name AWS-StartPortForwardingSession \
+        --parameters "{\"portNumber\":[\"${tunnel_port}\"],\"localPortNumber\":[\"${local_port}\"]}" \
+        --region "${aws_region}" \
+        --profile "${aws_profile}"
+      ;;
+    *)
+      echo "Creating tunnel to ${tunnel_host} (${instance_id})"
+      aws ssm start-session \
+        --target "${instance_id}" \
+        --document-name AWS-StartPortForwardingSessionToRemoteHost \
+        --parameters "{\"portNumber\":[\"${tunnel_port}\"],\"localPortNumber\":[\"${local_port}\"],\"host\":[\"${tunnel_host}\"]}" \
+        --region "${aws_region}" \
+        --profile "${aws_profile}"
+      ;;
+  esac
 elif [ "${action}" == "document" ]; then
 
   if [ -n "${github_token_location}" ]; then

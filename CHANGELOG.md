@@ -1,5 +1,9 @@
 # CHANGELOG
 
+## [1.1.2]
+
+- @kmgoswami99 Tunnel to a loopback host via AWS-StartPortForwardingSession, which Session Manager no longer allows as a ToRemoteHost target
+
 ## [1.1.1]
 
 - @qedgardo ssh: filter instances by PingStatus to ensure only get online instances #26

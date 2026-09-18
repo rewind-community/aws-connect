@@ -58,6 +58,13 @@ jobs:
         uses: ncipollo/release-action@339a81892b84b4eeb0f6e744e4574d79d0d9b8dd # v1.21.0
         with:
           tag: ${{steps.get_version.outputs.version_tag}}
-          artifacts: "*.gem, CHANGELOG.md, sha256.sum, aws-connect*.tar.gz"
+          artifacts: "CHANGELOG.md, sha256.sum, aws-connect*.tar.gz"
           bodyFile: "REL-BODY.md"
           token: ${{ steps.app-token.outputs.token }}
+          # An immutable release is sealed the moment it is published, so assets
+          # have to land while it is still a draft. This creates the draft,
+          # uploads, then publishes.
+          immutableCreate: true
+          # Upload failures used to be warnings, so v1.1.2 published empty with a
+          # green check. Fail the build instead.
+          artifactErrorsFailBuild: true

@@ -55,6 +55,7 @@ jobs:
           echo "SHA256: ${checksum}" >> REL-BODY.md
 
       - name: Create Release
+        id: create_release
         uses: ncipollo/release-action@339a81892b84b4eeb0f6e744e4574d79d0d9b8dd # v1.21.0
         with:
           tag: ${{steps.get_version.outputs.version_tag}}
@@ -68,3 +69,36 @@ jobs:
           # Upload failures used to be warnings, so v1.1.2 published empty with a
           # green check. Fail the build instead.
           artifactErrorsFailBuild: true
+
+      - name: Delete stranded draft release
+        if: ${{ failure() && steps.create_release.outcome == 'failure' }}
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          TAG: ${{steps.get_version.outputs.version_tag}}
+        run: |
+          set -o pipefail
+          # The releases list lags creation by a second or two, so poll before giving up.
+          ids=""
+          listed=""
+          for _ in 1 2 3 4 5; do
+            if ids=$(gh api "repos/${GITHUB_REPOSITORY}/releases" --paginate \
+              --jq '.[] | select(.draft and .tag_name == env.TAG) | .id'); then
+              listed=yes
+              [ -n "$ids" ] && break
+            else
+              listed=""
+            fi
+            sleep 3
+          done
+          if [ -z "$listed" ]; then
+            echo "Could not list releases for ${TAG}; a draft may be stranded." >&2
+            exit 1
+          fi
+          if [ -z "$ids" ]; then
+            echo "No draft release for ${TAG}; nothing to clean up."
+            exit 0
+          fi
+          for id in $ids; do
+            echo "Deleting stranded draft ${id} for ${TAG}"
+            gh api -X DELETE "repos/${GITHUB_REPOSITORY}/releases/${id}"
+          done

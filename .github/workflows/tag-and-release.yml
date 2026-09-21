@@ -79,12 +79,21 @@ jobs:
           set -o pipefail
           # The releases list lags creation by a second or two, so poll before giving up.
           ids=""
+          listed=""
           for _ in 1 2 3 4 5; do
-            ids=$(gh api "repos/${GITHUB_REPOSITORY}/releases" --paginate \
-              --jq '.[] | select(.draft and .tag_name == env.TAG) | .id') || ids=""
-            [ -n "$ids" ] && break
+            if ids=$(gh api "repos/${GITHUB_REPOSITORY}/releases" --paginate \
+              --jq '.[] | select(.draft and .tag_name == env.TAG) | .id'); then
+              listed=yes
+              [ -n "$ids" ] && break
+            else
+              listed=""
+            fi
             sleep 3
           done
+          if [ -z "$listed" ]; then
+            echo "Could not list releases for ${TAG}; a draft may be stranded." >&2
+            exit 1
+          fi
           if [ -z "$ids" ]; then
             echo "No draft release for ${TAG}; nothing to clean up."
             exit 0
